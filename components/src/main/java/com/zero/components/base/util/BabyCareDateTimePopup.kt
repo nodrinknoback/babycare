@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.TextView
 import android.widget.LinearLayout
+import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.view.doOnLayout
 import androidx.core.view.ViewCompat
 import androidx.core.widget.TextViewCompat
@@ -652,7 +653,7 @@ internal class BabyCareDateTimePopup(
         }
 
         override fun onCreateViewHolder(context: Context, parent: ViewGroup, viewType: Int): ViewHolder {
-            val textView = object : TextView(context) {
+            val textView = object : AppCompatTextView(context) {
                 override fun onInitializeAccessibilityNodeInfo(info: AccessibilityNodeInfo) {
                     super.onInitializeAccessibilityNodeInfo(info)
                     // RecyclerView 有待处理更新时会跳过原 delegate；数值自身必须始终保留单选语义。
