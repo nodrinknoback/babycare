@@ -25,32 +25,8 @@ import com.zero.components.base.util.DialogHelper
 import com.zero.components.widget.RecordView.RecordState
 import com.zero.components.widget.ToolbarAction
 
-/**
- * 睡眠记录页面
- * 
- * ## 核心组件交互逻辑：
- * 
- * ### etStartTime（入睡时间输入框）
- * - 用户可以手动输入4位数字（如2330），自动格式化为 MM-dd HH:mm:ss
- * - 点击图标可弹出时间选择器
- * - 入睡时间变化时：清空醒来时间、重置计时器
- * 
- * ### etEndTime（醒来时间输入框）
- * - 用户可以手动输入4位数字
- * - 智能跨天：如果入睡时间是23:50，输入0630会自动识别为第二天06:30
- * - 醒来时间输入后：暂停计时器、即时校验时间范围
- * 
- * ### rvCounter（计时器）
- * - 三种状态：INIT（初始）→ RECORDING（计时中）→ PAUSE（暂停）
- * - 点击开始：自动填入入睡时间，开始计时
- * - 点击暂停：自动填入醒来时间
- * - 继续计时：如果醒来时间被手动修改过，会提示用户确认
- * - 支持暂停后继续，累计总时长
- * 
- * ### 交互流程：
- * 1. 方式一（使用计时器）：点击计时器开始 → 自动填入入睡时间 → 再次点击暂停 → 自动填入醒来时间
- * 2. 方式二（手动输入）：输入入睡时间 → 输入醒来时间 → 根据时间差显示时长
- * 3. 混合方式：手动输入入睡时间 → 点击计时器开始 → 从该时间点开始计时
+/** 睡眠记录的输入与渲染入口。
+ * View 只采集输入、展示错误和执行导航；冻结草稿与完整保存流程由 ViewModel 的协调器持有。
  */
 class SleepRecordFragment : BaseFragment<FragmentSleepRecordBinding>(), BackPressHandler {
 
@@ -84,7 +60,6 @@ class SleepRecordFragment : BaseFragment<FragmentSleepRecordBinding>(), BackPres
 
     private var discardPending = false
     private var reviewRevision = -1L
-    private var pendingStop: Pair<RecordMutationController.Target, String>? = null
     private var renderedTimerRef: com.zero.babydata.domain.TimerRef? = null
     private var pendingTimerRawDraft: Bundle? = null
     private var timerBusy = false
@@ -125,10 +100,11 @@ class SleepRecordFragment : BaseFragment<FragmentSleepRecordBinding>(), BackPres
                 }
         }
         observeMutation()
+        observeEditRecord()
         observeSessionRecovery()
         observePersistentTimer()
-        // LiveData 自身绑定 View 生命周期；只注册一次，避免反复进入记录页累加观察者。
-        vm.lastSleepRecord.observe(viewLifecycleOwner) { record ->
+        // 读取状态绑定 View 生命周期，切换宝宝时清除上一份摘要。
+        observeRecordRead(vm.lastRecord, accepts = { it == currentDraftBabyId() }, clearWhileLoading = true) { _, record ->
             if (record != null && record.babyId == currentDraftBabyId()) {
                 binding.tvLastSleep.text = getString(
                     R.string.last_sleep_time,
@@ -190,7 +166,6 @@ class SleepRecordFragment : BaseFragment<FragmentSleepRecordBinding>(), BackPres
     }
 
     override fun onDestroyView() {
-        pendingStop = null
         renderedTimerRef = null
         retainedDraft = if (!isHidden) captureDraft() else null
         timerController?.dispose()
@@ -206,7 +181,6 @@ class SleepRecordFragment : BaseFragment<FragmentSleepRecordBinding>(), BackPres
         if (view == null) return
         
         if (hidden) {
-            pendingStop = null
             timerController?.dismissPendingUi()
             retainedDraft = null
             // 隐藏时不重置计时器（保留进行中状态）
@@ -217,7 +191,6 @@ class SleepRecordFragment : BaseFragment<FragmentSleepRecordBinding>(), BackPres
 
     /** 同一个常驻页面也可能收到另一宝宝/编辑目标，必须先切换表单归属。 */
     private fun openCurrentTarget() {
-        pendingStop = null
         sessionChecking = false
         sessionCheckFailed = false
         sessionCommitting = false
@@ -263,7 +236,6 @@ class SleepRecordFragment : BaseFragment<FragmentSleepRecordBinding>(), BackPres
                     isProgrammaticChange = false
                     state.errorRes?.let {
                         discardPending = false
-                        pendingStop = null
                         ToastUtils.showShort(getString(it))
                         vm.timer.clearError()
                     }
@@ -277,18 +249,11 @@ class SleepRecordFragment : BaseFragment<FragmentSleepRecordBinding>(), BackPres
                 if (!state.busy && snapshot?.metadata?.requiresReview == true &&
                     snapshot.ref.revision != reviewRevision) {
                     reviewRevision = snapshot.ref.revision
-                    pendingStop = null
                     timerController?.showReviewConfirmation {
                         if (vm.timer.state.value.snapshot?.ref == snapshot.ref) vm.timer.acknowledgeReview()
                     }
                 }
-                if (!state.busy && state.errorRes == null && pendingStop != null &&
-                    state.snapshot?.status == com.zero.babydata.domain.TimerStatus.STOPPED) {
-                    val pending = pendingStop
-                    pendingStop = null
-                    if (pending?.first?.belongsTo(draftId, currentDraftBabyId(), mainVm.navTarget.value) == true &&
-                        pending.second == state.snapshot.ref.sessionId) saveSleepRecord()
-                }
+
             }
         }
     }
@@ -427,15 +392,17 @@ class SleepRecordFragment : BaseFragment<FragmentSleepRecordBinding>(), BackPres
 
     private fun loadEditRecord() {
         val recordId = editRecordId ?: return
-        val expectedView = view
-        val expectedBabyId = draftBabyId
-        val expectedDraftId = draftId
-        vm.loadSleepRecordById(recordId) { record ->
-            if (view !== expectedView || isHidden || editRecordId != recordId || draftId != expectedDraftId) return@loadSleepRecordById
-            if (record == null || (expectedBabyId != null && record.babyId != expectedBabyId) ||
+        vm.loadSleepRecordById(com.zero.babycare.home.record.EditRecordKey(recordId, draftBabyId, draftId))
+    }
+
+    /** 读取结果随 View 生命周期渲染，失败保留输入并允许重试，不由 ViewModel 持有页面回调。 */
+    private fun observeEditRecord() {
+        observeRecordRead(vm.editedRecord,
+            accepts = { it.recordId == editRecordId && it.draftId == draftId && !isHidden }) { key, record ->
+            if (record == null || (key.babyId != null && record.babyId != key.babyId) ||
                 (draftBabyId != null && record.babyId != draftBabyId)) {
                 mainVm.navigateTo(getReturnTarget())
-                return@loadSleepRecordById
+                return@observeRecordRead
             }
             draftBabyId = record.babyId
             editingRecord = record
@@ -467,7 +434,8 @@ class SleepRecordFragment : BaseFragment<FragmentSleepRecordBinding>(), BackPres
             return
         }
         if (sessionChecking || sessionCommitting || timerBusy) return
-        if (vm.mutation.isPending || (isEditMode && editingRecord == null)) return
+        if (vm.mutation.isPending) return
+        if (isEditMode && editingRecord == null) { loadEditRecord(); return }
         val babyId = currentDraftBabyId()
         if (babyId == null) {
             ToastUtils.showShort(getString(R.string.no_baby_selected))
@@ -489,41 +457,9 @@ class SleepRecordFragment : BaseFragment<FragmentSleepRecordBinding>(), BackPres
             return
         }
 
-        if (!isEditMode && vm.timer.state.value.snapshot?.let {
-                it.status != com.zero.babydata.domain.TimerStatus.STOPPED
-            } == true) {
-            pendingStop = mutationTarget(babyId) to requireNotNull(vm.timer.state.value.snapshot).ref.sessionId
-            vm.timer.stop()
-            return
-        }
-
-
-        val startTime = binding.timerPanel.startInput.getTimestamp()
-        val endTime = binding.timerPanel.endInput.getTimestamp()
-
-        // 校验
-        if (startTime <= 0) {
-            showFieldValidationError(binding.timerPanel.startInput, R.string.sleep_start_required)
-            return
-        }
-        if (endTime <= 0) {
-            showFieldValidationError(binding.timerPanel.endInput, R.string.sleep_end_required)
-            return
-        }
-        if (endTime <= startTime) {
-            showFieldValidationError(binding.timerPanel.endInput, R.string.sleep_end_must_after_start)
-            return
-        }
-
-        if (isEditMode && timerController?.updateDurationFromInputs(previewOnly = true) == false) return
-
-        // 明确夜醒会切断有效片段，保存沿用计时累计值。
-        val duration = timerController?.manualDurationPreview ?: TimerSessionPolicy.calculateSavedDuration(
-            mode = TimerMode.SLEEP,
-            startAt = startTime,
-            endAt = endTime,
-            activeDuration = binding.timerPanel.timerView.getDuration()
-        ).valueMs
+        val startTime = startInput.getTimestamp()
+        val endTime = endInput.getTimestamp()
+        val duration = binding.timerPanel.timerView.getDuration()
 
         val sleepRecord = SleepRecord(
             sleepId = editingRecord?.sleepId ?: 0,
@@ -644,6 +580,15 @@ class SleepRecordFragment : BaseFragment<FragmentSleepRecordBinding>(), BackPres
                         resetPage()
                     }
                     if (belongs && !isHidden) {
+                        if (state.errorRes != null && state.field != null) {
+                            val field = when (state.field) {
+                                RecordMutationController.Field.START -> binding.timerPanel.startInput
+                                RecordMutationController.Field.END -> binding.timerPanel.endInput
+                                else -> binding.timerPanel.endInput
+                            }
+                            showFieldValidationError(field, state.errorRes)
+                        }
+
                         val message = state.errorRes ?: if (state.kind == RecordMutationController.Kind.DELETE)
                             R.string.record_delete_success else R.string.sleep_save_success
                         ToastUtils.showShort(getString(message))
@@ -683,7 +628,6 @@ class SleepRecordFragment : BaseFragment<FragmentSleepRecordBinding>(), BackPres
      * 重置页面数据
      */
     private fun resetPage() {
-        pendingStop = null
         renderedTimerRef = null
         pendingTimerRawDraft = null
         timerBusy = false

@@ -324,6 +324,25 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     /** 当前宝宝变化时同步侧栏与主题，包括备份覆盖导入后的数据域切换。 */
     private fun observeCurrentBaby() {
         launchInLifecycle {
+            var popup: com.lxj.xpopup.core.BasePopupView? = null
+            try {
+                vm.babyLoadFailed.collect { failed ->
+                    popup?.dismiss()
+                    popup = if (failed) com.zero.components.base.util.DialogHelper.showConfirmDialog(
+                        this@MainActivity,
+                        getString(com.zero.common.R.string.data_load_failed),
+                        getString(com.zero.common.R.string.record_load_retry_message),
+                        confirmText = getString(com.zero.common.R.string.retry),
+                        onConfirm = vm::retryBabyLoading,
+                        isHideCancel = !vm.babyDataLoaded.value,
+                        dismissOnTouchOutside = false,
+                        dismissOnBackPressed = vm.babyDataLoaded.value
+                    ) else null
+                }
+            } finally { popup?.dismiss() }
+        }
+
+        launchInLifecycle {
             vm.currentBaby.combine(vm.babyDataLoaded) { baby, loaded -> baby to loaded }
                 .collectLatest { (baby, loaded) ->
                     if (!loaded) return@collectLatest

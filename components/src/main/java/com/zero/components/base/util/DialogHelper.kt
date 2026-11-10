@@ -107,6 +107,8 @@ object DialogHelper {
      * @param onConfirm 确认回调
      * @param onCancel 取消回调（可选）
      * @param isHideCancel 是否隐藏取消按钮（默认 false）
+     * @param dismissOnTouchOutside 等待显式确认的任务可关闭外部点击取消，避免任务悬空
+     * @param dismissOnBackPressed 关闭时由可见取消按钮提交明确的取消结果
      */
     fun showConfirmDialog(
         context: Context,
@@ -116,7 +118,9 @@ object DialogHelper {
         cancelText: String = context.getString(com.zero.common.R.string.cancel),
         onConfirm: () -> Unit,
         onCancel: (() -> Unit)? = null,
-        isHideCancel: Boolean = false
+        isHideCancel: Boolean = false,
+        dismissOnTouchOutside: Boolean = true,
+        dismissOnBackPressed: Boolean = true
     ): BasePopupView {
         val popup = ConfirmPopup(context)
             .setTitle(title)
@@ -129,6 +133,8 @@ object DialogHelper {
         onCancel?.let { popup.setOnCancelListener(it) }
 
         return XPopup.Builder(context)
+            .dismissOnTouchOutside(dismissOnTouchOutside)
+            .dismissOnBackPressed(dismissOnBackPressed)
             .asCustom(popup)
             .bindSystemBack()
             .show()

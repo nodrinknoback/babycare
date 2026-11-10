@@ -22,15 +22,28 @@ object BabyRecordChangeBus {
 
     val changes: SharedFlow<Int> = _changes.asSharedFlow()
 
+    /** 前台恢复只重排提醒，不清除已有通知或伪造记录变更。 */
+    fun refreshReminders() = refresh { ReminderScheduler.ensureScheduled(Utils.getApp()) }
+
     /** 导入后发一次全域失效信号，避免逐宝宝事件被容量为 1 的缓冲区丢弃。 */
     fun notifyAllChanged() {
-        ReminderNotifier.clearAll(Utils.getApp())
+        refresh { ReminderNotifier.clearAll(Utils.getApp()) }
         _changes.tryEmit(ALL_BABIES_CHANGED)
+        refresh { ReminderScheduler.ensureScheduled(Utils.getApp()) }
     }
 
     fun notifyChanged(babyId: Int) {
-        ReminderNotifier.clearForBaby(Utils.getApp(), babyId)
+        refresh { ReminderNotifier.clearForBaby(Utils.getApp(), babyId) }
         _changes.tryEmit(babyId)
-        ReminderScheduler.ensureScheduled(Utils.getApp())
+        refresh { ReminderScheduler.ensureScheduled(Utils.getApp()) }
+    }
+
+    /** 派生能力各自失败互不阻断，也不能把已提交的业务写入误报为失败。 */
+    private inline fun refresh(action: () -> Unit) {
+        try { action() } catch (failure: Exception) {
+            com.zero.common.util.FailureLog.warning(com.zero.common.util.FailureLog.RECORD_REFRESH) {
+                failure.javaClass.simpleName
+            }
+        }
     }
 }

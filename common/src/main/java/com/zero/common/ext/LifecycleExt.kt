@@ -24,7 +24,11 @@ fun LifecycleOwner.launchInLifecycle(
     minActiveState: Lifecycle.State = Lifecycle.State.STARTED,
     dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
     // 页面负责把可恢复错误映射到 UiState；这里不输出可能含身份或记录内容的异常消息。
-    handler: CoroutineExceptionHandler = CoroutineExceptionHandler { _, _ -> Unit },
+    handler: CoroutineExceptionHandler = CoroutineExceptionHandler { _, failure ->
+        com.zero.common.util.FailureLog.warning(com.zero.common.util.FailureLog.LIFECYCLE) {
+            failure.javaClass.simpleName
+        }
+    },
     block: suspend () -> Unit,
 ): Job {
     return lifecycleScope.launch(dispatcher + handler) {

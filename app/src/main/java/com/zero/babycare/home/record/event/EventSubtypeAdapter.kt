@@ -1,6 +1,7 @@
 package com.zero.babycare.home.record.event
 
 import android.content.Context
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
@@ -25,8 +26,10 @@ class EventSubtypeAdapter(
 
     inner class VH(
         parent: ViewGroup,
-        val binding: ItemEventSubtypeBinding = ItemEventSubtypeBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
+        viewType: Int,
+        // 两种卡片保留相同绑定节点；独立 viewType 避免切换类别时复用到排泄专属排版。
+        val binding: ItemEventSubtypeBinding = ItemEventSubtypeBinding.bind(
+            LayoutInflater.from(parent.context).inflate(viewType, parent, false)
         )
     ) : RecyclerView.ViewHolder(binding.root) {
         init {
@@ -49,7 +52,15 @@ class EventSubtypeAdapter(
     }
 
     override fun onCreateViewHolder(context: Context, parent: ViewGroup, viewType: Int): VH {
-        return VH(parent)
+        return VH(parent, viewType)
+    }
+
+    override fun getItemViewType(position: Int, list: List<EventSubtype>): Int {
+        return if (list[position].category == EventCategory.DIAPER) {
+            com.zero.babycare.R.layout.item_record_diaper_subtype
+        } else {
+            com.zero.babycare.R.layout.item_event_subtype
+        }
     }
 
     override fun onBindViewHolder(holder: VH, position: Int, item: EventSubtype?) {
@@ -58,29 +69,35 @@ class EventSubtypeAdapter(
         val context = holder.binding.root.context
 
         with(holder.binding) {
-            ivIcon.setImageResource(item.iconResId)
-            tvName.setText(item.nameResId)
+            ivIcon.setImageResource(item.cardIconResId)
+            tvName.setText(item.cardLabelResId)
             cardRoot.contentDescription = context.getString(item.nameResId)
 
-            // 设置图标背景颜色（使用分类对应的浅色）
-            val lightColorResId = when (item.category) {
-                EventCategory.DIAPER -> com.zero.common.R.color.event_diaper_light
-                EventCategory.HEALTH -> com.zero.common.R.color.event_health_light
-                EventCategory.GROWTH -> com.zero.common.R.color.event_growth_light
-                EventCategory.MILESTONE -> com.zero.common.R.color.event_milestone_light
-                EventCategory.CARE -> com.zero.common.R.color.event_care_light
-                EventCategory.ACTIVITY -> com.zero.common.R.color.event_activity_light
-                EventCategory.OTHER -> com.zero.common.R.color.event_other_light
+            if (item.category == EventCategory.DIAPER) {
+                // 排泄卡使用已确认的单色线稿，图标占位透明，避免叠加第二块色底。
+                iconContainer.background = null
+                ivIcon.setColorFilter(context.getThemeColor(com.zero.common.R.attr.colorDiaperSubtypeIcon))
+            } else {
+                // 设置图标背景颜色（使用分类对应的浅色）
+                val lightColorResId = when (item.category) {
+                    EventCategory.DIAPER -> com.zero.common.R.color.event_diaper_light
+                    EventCategory.HEALTH -> com.zero.common.R.color.event_health_light
+                    EventCategory.GROWTH -> com.zero.common.R.color.event_growth_light
+                    EventCategory.MILESTONE -> com.zero.common.R.color.event_milestone_light
+                    EventCategory.CARE -> com.zero.common.R.color.event_care_light
+                    EventCategory.ACTIVITY -> com.zero.common.R.color.event_activity_light
+                    EventCategory.OTHER -> com.zero.common.R.color.event_other_light
+                }
+
+                val bgDrawable = iconContainer.background as? GradientDrawable
+                    ?: GradientDrawable().also { iconContainer.background = it }
+                bgDrawable.setColor(ContextCompat.getColor(context, lightColorResId))
+                bgDrawable.shape = GradientDrawable.OVAL
+
+                // 设置图标颜色
+                val categoryColor = ContextCompat.getColor(context, item.category.colorResId)
+                ivIcon.setColorFilter(categoryColor)
             }
-
-            val bgDrawable = iconContainer.background as? GradientDrawable
-                ?: GradientDrawable().also { iconContainer.background = it }
-            bgDrawable.setColor(ContextCompat.getColor(context, lightColorResId))
-            bgDrawable.shape = GradientDrawable.OVAL
-
-            // 设置图标颜色
-            val categoryColor = ContextCompat.getColor(context, item.category.colorResId)
-            ivIcon.setColorFilter(categoryColor)
 
             cardRoot.setOnClickListener {
                 if (!isLocked && item.type != selectedType) {
@@ -110,6 +127,10 @@ class EventSubtypeAdapter(
             }
             cardRoot.isEnabled = !isLocked
             cardRoot.alpha = if (isLocked) lockedAlpha else 1f
+            if (item.category == EventCategory.DIAPER) {
+                renderDiaperSelection(holder, isSelected)
+                return
+            }
             val brandColor = context.getThemeColor(com.zero.common.R.attr.colorBrandForeground)
             cardRoot.setCardBackgroundColor(
                 ContextCompat.getColor(
@@ -136,6 +157,31 @@ class EventSubtypeAdapter(
                 }
             )
 
+        }
+    }
+
+    /** 专属色板只用于排泄四卡，日夜值由主题资源提供；不改变其他事件的状态。 */
+    private fun renderDiaperSelection(holder: VH, isSelected: Boolean) {
+        with(holder.binding) {
+            val context = cardRoot.context
+            cardRoot.setCardBackgroundColor(context.getThemeColor(
+                if (isSelected) com.zero.common.R.attr.colorDiaperSubtypeSelectedSurface
+                else com.zero.common.R.attr.colorDiaperSubtypeSurface
+            ))
+            cardRoot.strokeWidth = context.resources
+                .getDimensionPixelSize(
+                    if (isSelected) com.zero.common.R.dimen.dp_1
+                    else com.zero.common.R.dimen.surface_stroke_width
+                ).coerceAtLeast(1)
+            cardRoot.strokeColor = context.getThemeColor(
+                if (isSelected) com.zero.common.R.attr.colorDiaperSubtypeSelectedBorder
+                else com.zero.common.R.attr.colorDiaperSubtypeBorder
+            )
+            tvName.setTextColor(context.getThemeColor(
+                if (isSelected) com.zero.common.R.attr.colorDiaperSubtypeSelectedText
+                else com.zero.common.R.attr.colorTextPrimary
+            ))
+            tvName.setTypeface(null, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
         }
     }
 

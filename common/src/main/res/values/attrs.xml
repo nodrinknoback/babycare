@@ -62,6 +62,14 @@
     <attr name="iconColorOnBrand" format="color"/>      <!-- Icons on brand background -->
     <attr name="iconColorDisabled" format="color"/>     <!-- Disabled state icons -->
 
+    <!-- 排泄子类卡使用独立状态色，男女主题共用，避免影响其它事件控件。 -->
+    <attr name="colorDiaperSubtypeIcon" format="color"/>
+    <attr name="colorDiaperSubtypeSurface" format="color"/>
+    <attr name="colorDiaperSubtypeSelectedSurface" format="color"/>
+    <attr name="colorDiaperSubtypeBorder" format="color"/>
+    <attr name="colorDiaperSubtypeSelectedBorder" format="color"/>
+    <attr name="colorDiaperSubtypeSelectedText" format="color"/>
+
     <!-- 2. Shape Tokens -->
     <attr name="shapeCornerSmall" format="dimension"/>  <!-- 8dp - Tags, Small Buttons -->
     <attr name="shapeCornerMedium" format="dimension"/> <!-- 16dp - Cards, Dialogs -->

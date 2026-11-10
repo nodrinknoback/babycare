@@ -36,7 +36,7 @@ import kotlinx.coroutines.flow.first
 
 class MainViewModel @JvmOverloads constructor(
     private val savedStateHandle: SavedStateHandle,
-    babySnapshots: Flow<List<BabyInfo>> = repository.observeAllBabyInfo()
+    private val babySnapshots: Flow<List<BabyInfo>> = repository.observeAllBabyInfo()
 ) : BaseViewModel() {
     // 只在主线程变更；新通知、手动导航或切宝宝都会使等待首帧的旧点击失效。
     private var reminderRequestVersion = 0L
@@ -82,22 +82,43 @@ class MainViewModel @JvmOverloads constructor(
 
     fun isDeletingBaby(babyId: Int?): Boolean = babyId != null && babyId in _deletingBabyIds.value
 
-    init {
-        // Room Flow 自动跟踪增删改；缓存只负责恢复选择，不再触发主线程数据库查询。
-        viewModelScope.launch {
-            babySnapshots.collectLatest { babies ->
-                reconcileBabies(babies)
-                _babyDataLoaded.value = true
+    private val mutableBabyLoadFailed = MutableStateFlow(false)
+    val babyLoadFailed = mutableBabyLoadFailed.asStateFlow()
+    private var babyLoadJob: kotlinx.coroutines.Job? = null
+
+    init { retryBabyLoading() }
+
+    /** 数据读取失败不能伪装成“没有宝宝”；保留当前选择并由用户重新订阅。 */
+    fun retryBabyLoading() {
+        babyLoadJob?.cancel()
+        mutableBabyLoadFailed.value = false
+        babyLoadJob = viewModelScope.launch {
+            try {
+                babySnapshots.collectLatest { babies ->
+                    reconcileBabies(babies)
+                    _babyDataLoaded.value = true
+                }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) {
+                com.zero.common.util.FailureLog.warning(com.zero.common.util.FailureLog.BABY_LOAD) { failure.javaClass.simpleName }
+                mutableBabyLoadFailed.value = true
             }
         }
     }
 
     /** 系统通知设置可在应用外改变，返回前台时恢复因权限被关闭而结束的提醒任务。 */
     fun onAppForeground() {
+        if (mutableBabyLoadFailed.value) retryBabyLoading()
         refreshBabyAges()
-        ReminderScheduler.ensureScheduled(Utils.getApp())
+        com.zero.babycare.home.BabyRecordChangeBus.refreshReminders()
         // 只恢复已提交导入的派生状态，不会再次执行导入；任务随 Activity 的 ViewModel 释放。
-        viewModelScope.launch { BackupImportRecovery.recoverPending(Utils.getApp()) }
+        viewModelScope.launch {
+            try { BackupImportRecovery.recoverPending(Utils.getApp()) }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) {
+                com.zero.common.util.FailureLog.warning(com.zero.common.util.FailureLog.RECORD_REFRESH) { failure.javaClass.simpleName }
+            }
+        }
     }
 
     /** 回前台或重新打开宝宝入口时刷新日期/时区，长驻页面不会一直保留昨日年龄。 */
@@ -223,7 +244,7 @@ class MainViewModel @JvmOverloads constructor(
             try {
                 repository.deleteBabyInfo(babyInfo)
                 ReminderNotifier.clearForBaby(Utils.getApp(), babyInfo.babyId)
-                ReminderScheduler.ensureScheduled(Utils.getApp())
+                com.zero.babycare.home.BabyRecordChangeBus.notifyAllChanged()
                 if (_currentBaby.value?.babyId == babyInfo.babyId) {
                     MMKVStore.remove(CURRENT_BABY_ID)
                 }

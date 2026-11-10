@@ -186,7 +186,7 @@ class BabyRepository(private val database: BabyDatabase) {
     suspend fun getLastFeedingRecord(babyId: Int): FeedingRecord? =
         (listOfNotNull(feedingRecordDao.getLastFeedingRecord(babyId)) +
             feedingRecordDao.getRecentUnmeasuredFeedings(babyId, 1, FeedingType.entries.map { it.type }))
-            .maxWithOrNull(compareBy<FeedingRecord> { it.feedingEnd.takeIf { end -> end > 0L } ?: it.feedingStart }
+            .maxWithOrNull(compareBy<FeedingRecord> { com.zero.babydata.domain.RecordReferenceTime.feeding(it) }
                 .thenBy { it.feedingStart }.thenBy { it.feedingId })
 
     suspend fun getRecentFeedings(babyId: Int, limit: Int): List<FeedingRecord> =
@@ -198,7 +198,7 @@ class BabyRepository(private val database: BabyDatabase) {
         val milkTypes = listOf(FeedingType.BREAST.type, FeedingType.FORMULA.type, FeedingType.MIXED.type)
         return (feedingRecordDao.getRecentCompletedMilkFeedings(babyId, limit, milkTypes) +
             feedingRecordDao.getRecentUnmeasuredFeedings(babyId, limit, milkTypes))
-            .sortedWith(compareByDescending<FeedingRecord> { it.feedingEnd.takeIf { end -> end > 0L } ?: it.feedingStart }
+            .sortedWith(compareByDescending<FeedingRecord> { com.zero.babydata.domain.RecordReferenceTime.feeding(it) }
                 .thenByDescending { it.feedingStart }.thenByDescending { it.feedingId }).take(limit)
     }
 
@@ -517,6 +517,41 @@ class BabyRepository(private val database: BabyDatabase) {
         val diaperDryCount: Int = 0,
         val otherEventCount: Int = 0
     )
+
+    data class StatisticsPeriodRecords(
+        val feedings: List<FeedingRecord>, val sleeps: List<SleepRecord>,
+        val feedingOverlaps: List<FeedingRecord>, val sleepOverlaps: List<SleepRecord>,
+        val events: List<EventRecord>
+    )
+
+    data class StatisticsSnapshot(
+        val baby: BabyInfo?, val summary: DaySummaryData, val timeline: List<TimelineRecord>,
+        val growth: Map<Int, List<EventRecord>>,
+        val periods: Map<LongRange, StatisticsPeriodRecords>
+    )
+
+    /** 一次读取整页的数据库事实，避免保存发生在分区查询之间造成摘要与时间轴不一致。
+     * 事务只包含查询和既有当日聚合；WHO 文件解析、图表计算与文案映射在事务外执行。
+     */
+    suspend fun getStatisticsSnapshot(
+        babyId: Int, date: LocalDate, zone: ZoneId, ranges: List<LongRange>
+    ): StatisticsSnapshot = database.withTransaction {
+        StatisticsSnapshot(
+            baby = getBabyInfo(babyId), summary = getDaySummary(babyId, date, zone),
+            timeline = getTimelineRecords(babyId, date, zone),
+            growth = listOf(EventType.GROWTH_WEIGHT, EventType.GROWTH_HEIGHT, EventType.GROWTH_HEAD)
+                .associateWith { getEventRecordsByType(babyId, it) },
+            periods = ranges.distinct().associateWith { range ->
+                StatisticsPeriodRecords(
+                    getFeedingRecordsBetween(babyId, range.first, range.last),
+                    getSleepRecordsBetween(babyId, range.first, range.last),
+                    getFeedingRecordsIntersectingRange(babyId, range.first, range.last),
+                    getSleepRecordsIntersectingRange(babyId, range.first, range.last),
+                    getEventRecordsBetween(babyId, range.first, range.last)
+                )
+            }
+        )
+    }
 
     /** 获取当日喂养、睡眠、排泄与其他事件摘要。 */
     suspend fun getDaySummary(babyId: Int, date: LocalDate, zone: ZoneId = ZoneId.systemDefault()): DaySummaryData {

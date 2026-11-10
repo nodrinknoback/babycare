@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 夜间值对应批准的事件选择样张，并独立于宝宝品牌色。 -->
+    <color name="diaper_subtype_icon">#ADCAFF</color>
+    <color name="diaper_subtype_surface">#1D2825</color>
+    <color name="diaper_subtype_selected_surface">#283850</color>
+    <color name="diaper_subtype_border">#394A42</color>
+    <color name="diaper_subtype_selected_border">#97ADD3</color>
+    <color name="diaper_subtype_selected_text">#DEE8FC</color>
+</resources>

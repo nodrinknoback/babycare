@@ -72,6 +72,20 @@ data class EventSubtype(
     @param:DrawableRes val iconResId: Int,
     val category: EventCategory
 ) {
+    /** 卡片的分词换行不进入记录名称，保证时间轴、导出和读屏仍使用连续文案。 */
+    val cardLabelResId: Int
+        @StringRes get() = if (type == EventType.DIAPER_DRY) R.string.event_diaper_dry_card_label else nameResId
+
+    /** 本次线稿只用于记录页四张排泄卡，其他页面继续使用原图标资源。 */
+    val cardIconResId: Int
+        @DrawableRes get() = when (type) {
+            EventType.DIAPER_WET -> com.zero.babycare.R.drawable.ic_record_diaper_wet
+            EventType.DIAPER_DIRTY -> com.zero.babycare.R.drawable.ic_record_diaper_dirty
+            EventType.DIAPER_MIXED -> com.zero.babycare.R.drawable.ic_record_diaper_mixed
+            EventType.DIAPER_DRY -> com.zero.babycare.R.drawable.ic_record_diaper_dry
+            else -> iconResId
+        }
+
     companion object {
         /**
          * 获取指定大类下的所有子类型

@@ -589,4 +589,8 @@
     <string name="timer_feeding_paused">餵養已暫停</string>
     <string name="timer_open_record">繼續處理記錄</string>
     <string name="timer_part_unspecified">未區分側別</string>
+    <string name="event_diaper_dry_card_label">乾淨\n換尿布</string>
+    <string name="privacy_policy_title">隱私政策</string>
+    <string name="record_load_retry_message">暫時無法讀取資料，目前輸入已保留。請重試。</string>
+    <string name="privacy_policy_body">更新日期：2026-11-09\n本政策適用於 BabyCare Android 應用程式（com.zero.babycare）。開發者：copydog。隱私聯絡信箱：nodrinknoback@gmail.com。\n\n1. 本機處理的資料與用途\nBabyCare 供家長和監護人記錄寶寶的日常生活。你主動輸入的姓名、性別、生日、餵養、睡眠、排泄、體溫、用藥、疫苗、成長、活動及備註等資料，儲存在裝置的應用程式私有空間，用於記錄管理、本機統計、成長曲線、餵養與睡眠規律估算及提醒。設定和計時狀態也儲存在本機。請僅輸入你有權管理的資訊。\n\n2. 收集、分享與第三方\n目前版本無需註冊帳號，不將照護記錄上傳至開發者伺服器，不出售或向廣告商分享資料，也不整合廣告、行為分析或遠端當機回報服務。統計及預測在裝置上執行。Room、MMKV 等基礎元件用於本機處理。目前版本不要求網路存取權限。\n\n3. 權限、通知與備份\n通知權限僅用於你開啟的本機照護提醒，可隨時在應用程式或系統設定中關閉。提醒文字可能出現在鎖定畫面上，請視需要調整系統通知隱私設定。匯入與匯出透過系統檔案選擇器操作你選擇的檔案，無需存取整個儲存空間。備份包含匯出的寶寶及照護記錄，檔案本身未加密，請儲存在可信位置。若選擇雲端硬碟等提供者，檔案將由該服務依其隱私政策處理。應用程式已停用 Android 自動備份。\n\n4. 保存、安全與刪除\n資料保留在本機，直至你刪除記錄、刪除寶寶、清除應用程式資料或解除安裝。刪除寶寶會同時刪除關聯記錄。手動匯出的檔案獨立存在，需在儲存位置另行刪除。應用程式依賴 Android 應用程式隔離與裝置安全保護，不提供獨立的資料庫或備份加密。開發者沒有本機資料的副本，無法代你還原或遠端刪除。請保護裝置並妥善保管備份。\n\n5. 兒童資訊與健康說明\n本應用程式面向成年照護者，不供兒童獨立使用。寶寶資訊由家長或監護人管理。BabyCare 不是醫療器材，不用於診斷、治療、治癒或預防任何疾病。成長參考、預測及提醒僅協助整理記錄，不能取代專業醫療建議。需要醫療建議、診斷或治療時，請諮詢醫療專業人員。\n\n6. 聯絡與政策更新\n如有隱私問題或希望刪除你主動寄給開發者的支援郵件，請聯絡 nodrinknoback@gmail.com。支援郵件與自願提供的資訊僅用於處理請求，並在處理完成且無必要繼續保留時刪除；郵件服務商會依其政策處理郵件。請勿寄送不必要的寶寶健康細節。公開政策網頁由 GitHub Pages 託管；瀏覽時 GitHub 可能處理 IP 位址及存取記錄，詳見 GitHub 隱私聲明（https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement）。政策隨功能變更更新，並在應用程式及公開頁面標明日期。</string>
 </resources>

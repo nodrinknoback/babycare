@@ -20,6 +20,9 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        // MMKV 2.x 仅提供 64 位库；必须让安装包的 ABI 与启动时依赖保持一致。
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

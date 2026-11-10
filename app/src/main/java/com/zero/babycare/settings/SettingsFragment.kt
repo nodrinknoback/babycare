@@ -46,6 +46,8 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), BackPressHandl
     private val weightUnitRow get() = binding.rowWeightUnit
     private val heightUnitRow get() = binding.rowHeightUnit
     private val versionRow get() = binding.rowVersion
+    private val privacyRow get() = binding.rowPrivacy
+    private var privacyPopup: com.lxj.xpopup.core.BasePopupView? = null
     private val languageRow get() = binding.rowLanguage
     private val backupRow get() = binding.rowBackup
     private val familyRow get() = binding.rowFamily
@@ -108,6 +110,14 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), BackPressHandl
         versionRow.tvSummary.visibility = View.GONE
         versionRow.ivArrow.visibility = View.GONE
         versionRow.root.isClickable = false
+        // 政策全文随安装包提供，离线也能查看；与公开网页使用同一份多语言源数据。
+        privacyRow.root.setOnClickListener {
+            privacyPopup?.dismiss()
+            privacyPopup = DialogHelper.showAlertDialog(requireContext(),
+                localizedString(com.zero.common.R.string.privacy_policy_title),
+                localizedString(com.zero.common.R.string.privacy_policy_body),
+                contentGravity = android.view.Gravity.START)
+        }
         versionRow.root.isFocusable = false
         versionRow.tvValue.text = AppUtils.getAppVersionName()
 
@@ -131,7 +141,8 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), BackPressHandl
         heightUnitRow.root.setBackgroundResource(R.drawable.bg_setting_item_bottom_ripple)
 
         reminderRow.root.setBackgroundResource(R.drawable.bg_setting_item_single_ripple)
-        versionRow.root.setBackgroundResource(R.drawable.bg_setting_item_single_ripple)
+        versionRow.root.setBackgroundResource(R.drawable.bg_setting_item_top_ripple)
+        privacyRow.root.setBackgroundResource(R.drawable.bg_setting_item_bottom_ripple)
 
         languageRow.root.setBackgroundResource(R.drawable.bg_setting_item_top_ripple)
         backupRow.root.setBackgroundResource(R.drawable.bg_setting_item_middle_ripple)
@@ -382,6 +393,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), BackPressHandl
         weightUnitRow.tvTitle.text = localizedString(com.zero.common.R.string.settings_unit_weight_title)
         heightUnitRow.tvTitle.text = localizedString(com.zero.common.R.string.settings_unit_height_title)
         versionRow.tvTitle.text = localizedString(com.zero.common.R.string.settings_about_version)
+        privacyRow.tvTitle.text = localizedString(com.zero.common.R.string.privacy_policy_title)
         languageRow.tvTitle.text = localizedString(com.zero.common.R.string.settings_language)
         backupRow.tvTitle.text = localizedString(com.zero.common.R.string.settings_backup)
         backupRow.tvSummary.text = localizedString(com.zero.common.R.string.settings_backup_summary)
@@ -394,5 +406,11 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), BackPressHandl
      */
     private fun localizedString(@StringRes resId: Int, vararg args: Any): String {
         return if (args.isEmpty()) getString(resId) else getString(resId, *args)
+    }
+
+    override fun onDestroyView() {
+        privacyPopup?.dismiss()
+        privacyPopup = null
+        super.onDestroyView()
     }
 }

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="@dimen/icon_size_standard"
+    android:height="@dimen/icon_size_standard"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 取自批准稿的排泄子类线稿，独立图标避免改变时间轴等已有入口。 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M5.7 8.3L3.4 8V10.9C3.4 14.6 5.7 17.1 10.1 19.4Q12 20.4 13.9 19.4C18.3 17.1 20.6 14.6 20.6 10.9V8L18.3 8.3M4.3 12.8Q7.7 13.4 9.3 17.6M19.7 12.8Q16.3 13.4 14.7 17.6"
+        android:strokeColor="?attr/colorDiaperSubtypeIcon"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.8" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M12 3.2C11.1 5 8.9 7.4 8.9 9.3C8.9 13.2 15.1 13.2 15.1 9.3C15.1 7.4 12.9 5 12 3.2Z"
+        android:strokeColor="?attr/colorDiaperSubtypeIcon"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.8" />
+</vector>

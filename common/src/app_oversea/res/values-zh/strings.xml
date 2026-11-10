@@ -589,4 +589,8 @@
     <string name="timer_feeding_paused">喂养已暂停</string>
     <string name="timer_open_record">继续处理记录</string>
     <string name="timer_part_unspecified">未区分侧别</string>
+    <string name="event_diaper_dry_card_label">干净\n换尿布</string>
+    <string name="privacy_policy_title">隐私政策</string>
+    <string name="record_load_retry_message">暂时无法读取数据，当前输入已保留。请重试。</string>
+    <string name="privacy_policy_body">更新日期：2026-11-09\n本政策适用于 BabyCare Android 应用（com.zero.babycare）。开发者：copydog。隐私联系邮箱：nodrinknoback@gmail.com。\n\n1. 本机处理的数据与用途\nBabyCare 供家长和监护人记录宝宝的日常生活。你主动输入的姓名、性别、生日、喂养、睡眠、排泄、体温、用药、疫苗、成长、活动及备注等数据保存在设备的应用私有存储中，用于记录管理、本地统计、成长曲线、喂养和睡眠规律估算及提醒。设置和计时状态也保存在本机。请仅输入你有权管理的信息。\n\n2. 收集、共享与第三方\n当前版本无需注册账号，不将照护记录上传到开发者服务器，不出售或向广告商共享这些数据，也不集成广告、行为分析或远程崩溃上报服务。统计和预测在设备上执行。应用使用的 Room、MMKV 等基础组件用于本地处理。当前版本不请求网络访问权限。\n\n3. 权限、通知与备份\n通知权限仅用于你开启的本地照护提醒，可随时在应用或系统设置中关闭。提醒文字可能出现在锁屏上，请按需要调整系统通知隐私设置。导入和导出通过系统文件选择器操作你选择的文件，无需访问整个存储空间。备份文件包含你导出的宝宝及照护记录，文件本身未加密；请保存在可信位置。若你选择云盘等文件提供方，文件会交由该服务处理，其隐私政策另行适用。应用已禁用 Android 自动备份。\n\n4. 保存、安全与删除\n数据保留在本机，直至你删除记录、删除宝宝、清除应用数据或卸载应用。删除宝宝会同时删除其关联记录。手动导出的文件独立于应用，需在保存位置另行删除。应用依赖 Android 的应用隔离和设备安全保护，不提供独立的数据库或备份加密。开发者没有你的本地数据副本，无法代你恢复或远程删除。请保护设备并妥善保管备份。\n\n5. 儿童信息与健康说明\n本应用面向成年照护者，不面向儿童独立使用。宝宝信息由其家长或监护人管理。BabyCare 不是医疗器械，不用于诊断、治疗、治愈或预防任何疾病。成长参考、预测及提醒仅帮助整理记录，不能替代专业医疗建议。需要医疗建议、诊断或治疗时，请咨询医疗专业人员。\n\n6. 联系与政策更新\n如有隐私问题或希望删除你主动发给开发者的支持邮件，请联系 nodrinknoback@gmail.com。支持邮件及你自愿提供的信息仅用于处理请求，并在完成处理且无必要继续保留时删除；邮件服务商会按其政策处理邮件。请勿发送不必要的宝宝健康详情。公开政策网页由 GitHub Pages 托管；浏览网页时 GitHub 可能处理 IP 地址和访问日志，具体见 GitHub 隐私声明（https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement）。本政策随功能变化更新，并在应用和公开页面标明日期。</string>
 </resources>

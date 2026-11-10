@@ -206,14 +206,10 @@ class EventRecordViewModel(private val injectedRepository: BabyRepository? = nul
         _note.value = note
     }
 
-    fun loadEventRecordById(eventId: Int, callback: (EventRecord?) -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val record = repository.getEventRecordById(eventId)
-            withContext(Dispatchers.Main) {
-                callback(record)
-            }
-        }
+    internal val editedRecord = com.zero.babycare.home.record.RecordReadController<com.zero.babycare.home.record.EditRecordKey, EventRecord>(viewModelScope) {
+        repository.getEventRecordById(it.recordId)
     }
+    internal fun loadEventRecordById(key: com.zero.babycare.home.record.EditRecordKey) = editedRecord.load(key)
 
     /**
      * 判断当前事件类型是否需要时长

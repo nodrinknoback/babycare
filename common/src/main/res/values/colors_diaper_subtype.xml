@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 仅供记录事件中的四种排泄子类使用。 -->
+    <color name="diaper_subtype_icon">#486AB2</color>
+    <color name="diaper_subtype_surface">#F9FBFA</color>
+    <color name="diaper_subtype_selected_surface">#EAF0FC</color>
+    <color name="diaper_subtype_border">#E1E7E6</color>
+    <color name="diaper_subtype_selected_border">#6C83AD</color>
+    <color name="diaper_subtype_selected_text">#364F79</color>
+</resources>

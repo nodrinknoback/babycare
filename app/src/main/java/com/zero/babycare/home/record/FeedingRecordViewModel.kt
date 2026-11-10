@@ -1,31 +1,23 @@
 package com.zero.babycare.home.record
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.zero.babycare.home.BabyRecordChangeBus
 import com.zero.babydata.entity.FeedingRecord
 import com.zero.components.base.vm.BaseViewModel
 import com.zero.babydata.domain.BabyDataHelper
 import com.zero.babydata.room.BabyRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.zero.babycare.home.OngoingRecordManager
 import com.zero.common.R
-import com.zero.common.util.TimerClockSnapshot
 
 class FeedingRecordViewModel(private val injectedRepository: BabyRepository? = null) : BaseViewModel() {
     // 延迟获取默认数据源，让草稿状态恢复独立于数据库初始化，并支持隔离的数据层验证。
     private val repository by lazy { injectedRepository ?: BabyDataHelper.repository }
-    internal val mutation = RecordMutationController(viewModelScope)
     internal val timer = PersistentTimerEditor(viewModelScope, { repository }, com.zero.babydata.domain.TimerRecordKind.FEEDING)
     internal val sessions = SessionCommitCoordinator(viewModelScope, { repository }, OngoingRecordManager.RecordType.FEEDING, timer)
+    internal val mutation get() = sessions.mutation
 
-    private val _lastFeedingRecord = MutableLiveData<FeedingRecord?>()
-    val lastFeedingRecord: LiveData<FeedingRecord?> = _lastFeedingRecord
-    private var lastRequestedBabyId: Int? = null
-
+    internal val lastRecord = RecordReadController<Int, FeedingRecord>(viewModelScope) { repository.getLastFeedingRecord(it) }
+    internal val editedRecord = RecordReadController<EditRecordKey, FeedingRecord>(viewModelScope) { repository.getFeedingRecordById(it.recordId) }
 
     internal fun save(
         feedingRecord: FeedingRecord,
@@ -45,13 +37,7 @@ class FeedingRecordViewModel(private val injectedRepository: BabyRepository? = n
             createdAt = original.createdAt,
             timerData = original.timerData, timerSessionId = original.timerSessionId, timerRevision = original.timerRevision
         )
-        mutation.submit(target, RecordMutationController.Kind.SAVE, R.string.save_failed) {
-            if (target.recordId != null) repository.updateFeedingRecord(frozenRecord)
-            else sessions.saveFeeding(frozenRecord, target.draftId, sessionId)
-            // 保存已由 Room 确认，派生刷新失败只记录原因，不能让页面再次插入。
-            runCatching { BabyRecordChangeBus.notifyChanged(feedingRecord.babyId) }
-                .onFailure { com.blankj.utilcode.util.LogUtils.w("喂养已保存，派生状态刷新失败：${it.javaClass.simpleName}") }
-        }
+        sessions.submitFeeding(frozenRecord, target, sessionId)
     }
 
     /** 删除后统一发出记录变更，界面仅消费有明确草稿归属的结果。 */
@@ -62,23 +48,7 @@ class FeedingRecordViewModel(private val injectedRepository: BabyRepository? = n
         }
     }
 
-    fun loadLastFeedingRecord(babyId: Int) {
-        if (lastRequestedBabyId != babyId) _lastFeedingRecord.value = null
-        lastRequestedBabyId = babyId
-        // 查询走 IO；回到主线程核验请求归属，避免旧宝宝的慢查询覆盖新宝宝的结果。
-        viewModelScope.launch {
-            val record = withContext(Dispatchers.IO) { repository.getLastFeedingRecord(babyId) }
-            if (lastRequestedBabyId == babyId) _lastFeedingRecord.value = record
-        }
-    }
+    fun loadLastFeedingRecord(babyId: Int) = lastRecord.load(babyId)
 
-    fun loadFeedingRecordById(feedingId: Int, callback: (FeedingRecord?) -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val record = repository.getFeedingRecordById(feedingId)
-            withContext(Dispatchers.Main) {
-                callback(record)
-            }
-        }
-    }
-
+    internal fun loadFeedingRecordById(key: EditRecordKey) = editedRecord.load(key)
 }

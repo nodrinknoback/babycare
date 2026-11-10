@@ -41,6 +41,14 @@
         <item name="iconColorOnBrand">?attr/colorOnBrand</item>
         <item name="iconColorDisabled">@color/text_hint_default</item>
 
+        <!-- 四种排泄子类卡独立取色，两套宝宝主题共同继承。 -->
+        <item name="colorDiaperSubtypeIcon">@color/diaper_subtype_icon</item>
+        <item name="colorDiaperSubtypeSurface">@color/diaper_subtype_surface</item>
+        <item name="colorDiaperSubtypeSelectedSurface">@color/diaper_subtype_selected_surface</item>
+        <item name="colorDiaperSubtypeBorder">@color/diaper_subtype_border</item>
+        <item name="colorDiaperSubtypeSelectedBorder">@color/diaper_subtype_selected_border</item>
+        <item name="colorDiaperSubtypeSelectedText">@color/diaper_subtype_selected_text</item>
+
         <!-- Shapes -->
         <item name="shapeCornerSmall">8dp</item>
         <item name="shapeCornerMedium">16dp</item>

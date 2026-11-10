@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 排泄子类设计稿的固定几何尺寸，标签高度仍随文字自适应。 -->
+    <dimen name="dp_0">0dp</dimen>
+    <dimen name="dp_1">1dp</dimen>
+    <dimen name="dp_4">4dp</dimen>
+    <dimen name="dp_8">8dp</dimen>
+    <dimen name="dp_28">28dp</dimen>
+    <dimen name="dp_36">36dp</dimen>
+    <dimen name="dp_96">96dp</dimen>
+
     <!-- Page Layout -->
     <dimen name="page_horizontal_padding">16dp</dimen>
     <dimen name="page_vertical_padding">12dp</dimen>

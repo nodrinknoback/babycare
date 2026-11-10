@@ -1,6 +1,8 @@
 package com.zero.babycare.home.record.event
 
+import com.zero.babycare.home.record.observeRecordRead
 import android.graphics.Rect
+import android.graphics.Typeface
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -177,6 +179,7 @@ class EventRecordFragment : BaseFragment<FragmentEventRecordBinding>(), BackPres
 
         observeViewModel()
         observeMutation()
+        observeEditRecord()
         launchInLifecycle { vm.timer.state.collect(::renderPersistentTimer) }
         launchInLifecycle {
             vm.fieldValidation.collect(::renderFieldValidation)
@@ -428,20 +431,22 @@ class EventRecordFragment : BaseFragment<FragmentEventRecordBinding>(), BackPres
 
     private fun loadEditRecord() {
         val recordId = editRecordId ?: return
-        val expectedView = view
-        val expectedBabyId = draftBabyId
-        val expectedDraftId = draftId
-        vm.loadEventRecordById(recordId) { record ->
-            if (view !== expectedView || isHidden || editRecordId != recordId || draftId != expectedDraftId) return@loadEventRecordById
-            if (record == null || (expectedBabyId != null && record.babyId != expectedBabyId) ||
+        vm.loadEventRecordById(com.zero.babycare.home.record.EditRecordKey(recordId, draftBabyId, draftId))
+    }
+
+    /** 读取结果随 View 生命周期渲染，失败保留输入并允许重试，不由 ViewModel 持有页面回调。 */
+    private fun observeEditRecord() {
+        observeRecordRead(vm.editedRecord,
+            accepts = { it.recordId == editRecordId && it.draftId == draftId && !isHidden }) { key, record ->
+            if (record == null || (key.babyId != null && record.babyId != key.babyId) ||
                 (draftBabyId != null && record.babyId != draftBabyId)) {
                 mainVm.navigateTo(getReturnTarget())
-                return@loadEventRecordById
+                return@observeRecordRead
             }
             draftBabyId = record.babyId
             editingRecord = record
             updateToolbarAction()
-            if (hasUnsavedChanges) return@loadEventRecordById
+            if (hasUnsavedChanges) return@observeRecordRead
             isProgrammaticChange = true
             numericInput = null
             numericInputType = null
@@ -593,6 +598,10 @@ class EventRecordFragment : BaseFragment<FragmentEventRecordBinding>(), BackPres
         if (available <= 0 || items.isEmpty()) return
         val label = TextView(recycler.context).apply {
             TextViewCompat.setTextAppearance(this, R.style.TextAppearance_BabyCare_Body2)
+            if (items.first().category == EventCategory.DIAPER) {
+                // 用选中项的字重和同一份分词文案试排，避免切换后才出现拥挤或截字。
+                setTypeface(null, Typeface.BOLD)
+            }
         }
         val spacing = (8 * recycler.resources.displayMetrics.density).toInt()
         val minimumWidth = (56 * recycler.resources.displayMetrics.density).toInt()
@@ -600,7 +609,7 @@ class EventRecordFragment : BaseFragment<FragmentEventRecordBinding>(), BackPres
         val columns = (SUBTYPE_SPAN_COUNT downTo 1).first { count ->
             val itemWidth = (available - spacing * (count - 1)) / count
             itemWidth >= minimumWidth && items.all { item ->
-                val text = recycler.context.getString(item.nameResId)
+                val text = recycler.context.getString(item.cardLabelResId)
                 StaticLayout.Builder.obtain(text, 0, text.length, label.paint, (itemWidth - spacing).coerceAtLeast(1))
                     .build().lineCount <= 2
             } || count == 1

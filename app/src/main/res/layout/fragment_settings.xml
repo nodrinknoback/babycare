@@ -130,6 +130,15 @@
                 <include
                     android:id="@+id/rowVersion"
                     layout="@layout/item_setting_row" />
+
+                <View
+                    style="@style/divide_horizontal_line"
+                    android:layout_marginStart="@dimen/card_padding"
+                    android:layout_marginEnd="@dimen/card_padding" />
+
+                <include
+                    android:id="@+id/rowPrivacy"
+                    layout="@layout/item_setting_row" />
             </LinearLayout>
 
             <!-- 更多入口：把低频功能放在页面末端，减少高频设置的视觉干扰。 -->
